@@ -12,10 +12,24 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      build_result: ${{ job.status }}
+
     steps:
-      - uses: actions/checkout@v3
-      - run: npm install
-      - run: npm test
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
 
   notify:
     needs: build
@@ -28,10 +42,11 @@ jobs:
         run: |
           if [ "${{ needs.build.result }}" == "success" ]; then
             curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"✅ Build succeeded on branch ${{ github.ref }} for repo ${{ github.repository }}"}' \
+            --data '{"text":"✅ Build succeeded on branch `${{ github.ref }}` for repo `${{ github.repository }}`"}' \
             $SLACK_WEBHOOK_URL
           else
             curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"❌ Build failed on branch ${{ github.ref }} for repo ${{ github.repository }}. Please check the logs."}' \
+            --data '{"text":"❌ Build failed on branch `${{ github.ref }}` for repo `${{ github.repository }}`. Please check the logs."}' \
             $SLACK_WEBHOOK_URL
           fi
+

@@ -29,46 +29,46 @@ jobs:
       # - name: Build project
       #   run: npm run build
 
-  changelog-release:
-    needs: build-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+  # changelog-release:
+  #   needs: build-test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v3
 
-      - name: Generate changelog
-        uses: mikeal/publish-to-github-action@master
-        with:
-          args: npx auto-changelog -p
+  #     - name: Generate changelog
+  #       uses: mikeal/publish-to-github-action@master
+  #       with:
+  #         args: npx auto-changelog -p
 
-      - name: Commit changelog
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "chore: update changelog" || echo "No changes to commit"
-          git push
+  #     - name: Commit changelog
+  #       run: |
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #         git add CHANGELOG.md
+  #         git commit -m "chore: update changelog" || echo "No changes to commit"
+  #         git push
 
-  release:
-    needs: changelog-release
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+  # release:
+  #   needs: changelog-release
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v3
 
-      - name: Bump version and create release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release ${{ github.run_number }}
-          body_path: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Bump version and create release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         tag_name: v${{ github.run_number }}
+  #         name: Release ${{ github.run_number }}
+  #         body_path: CHANGELOG.md
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   notify-slack:
-    needs: release
+    # needs: release
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:

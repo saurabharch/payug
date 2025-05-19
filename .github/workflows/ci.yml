@@ -17,6 +17,10 @@ jobs:
       - name: Run dummy test
         run: echo "✅ CI Test Successful"
 
+      - name: Send Slack notification
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ check completed successfully!"}' $SLACK_WEBHOOK_URL
+
       - name: Notify Slack
         uses: 8398a7/action-slack@v3
         with:

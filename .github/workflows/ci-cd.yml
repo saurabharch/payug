@@ -1,82 +1,37 @@
-name: CI/CD Pipeline
+name: CI Pipeline with Slack Notifications
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+
+env:
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - run: npm install
+      - run: npm test
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      # - name: Run tests
-      #   run: npm test
-
-      # - name: Build project
-      #   run: npm run build
-
-  # changelog-release:
-  #   needs: build-test
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v3
-
-  #     - name: Generate changelog
-  #       uses: mikeal/publish-to-github-action@master
-  #       with:
-  #         args: npx auto-changelog -p
-
-  #     - name: Commit changelog
-  #       run: |
-  #         git config user.name "github-actions[bot]"
-  #         git config user.email "github-actions[bot]@users.noreply.github.com"
-  #         git add CHANGELOG.md
-  #         git commit -m "chore: update changelog" || echo "No changes to commit"
-  #         git push
-
-  # release:
-  #   needs: changelog-release
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v3
-
-  #     - name: Bump version and create release
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         tag_name: v${{ github.run_number }}
-  #         name: Release ${{ github.run_number }}
-  #         body_path: CHANGELOG.md
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notify-slack:
-    # needs: release
+  notify:
+    needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: always()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
     steps:
-      - name: Send notification to Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        if: always()
+      - name: Notify Slack of build result
+        run: |
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ Build succeeded on branch ${{ github.ref }} for repo ${{ github.repository }}"}' \
+            $SLACK_WEBHOOK_URL
+          else
+            curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ Build failed on branch ${{ github.ref }} for repo ${{ github.repository }}. Please check the logs."}' \
+            $SLACK_WEBHOOK_URL
+          fi
